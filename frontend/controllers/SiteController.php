@@ -93,7 +93,8 @@ class SiteController extends Controller
             }
             
         }
-        
+                   
+
         if (!$dish_id_f) {
             foreach ($dish_id as $dish_id_c) {
                 $mess='Ничего не найдено';
@@ -109,7 +110,8 @@ class SiteController extends Controller
                     unset($mess);
                 }
             }
-            
+            if(is_array($dish_id_f)){
+                
             uasort($dish_id_f, function($first, $second) {
                 if (count($first) == count($second)) {
                     return 0;
@@ -119,8 +121,12 @@ class SiteController extends Controller
             });
         }
         
+        if(is_array($dish_id_f)){
         $dish_id_f= array_keys($dish_id_f);
         $dish_id_f = array_unique($dish_id_f);
+        }
+                }
+        
         $dish = \common\models\dish::findAll($dish_id_f);
 
 
