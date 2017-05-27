@@ -6,6 +6,7 @@ use yii\web\Controller;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use common\models\LoginForm;
+use frontend\models\SignupForm;
 
 /**
  * Site controller
@@ -20,13 +21,15 @@ class SiteController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::className(),
+                'only' => ['logout', 'signup', 'contact'],
                 'rules' => [
                     [
-                        'actions' => ['login', 'error'],
+                        'actions' => ['signup'],
                         'allow' => true,
+                        'roles' => ['?'],
                     ],
                     [
-                        'actions' => ['logout', 'index'],
+                        'actions' => ['logout'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -62,7 +65,24 @@ class SiteController extends Controller
     {
         return $this->render('index');
     }
+public function actionSignup() {
+        $model = new SignupForm();
+        if ($model->load(Yii::$app->request->post())) {
+            if ($user = $model->signup()) {
+                if (Yii::$app->getUser()->login($user)) {
+                    if (!strpos($_SERVER['REQUEST_URI'], 'signup')) {
+                        return $this->redirect(Yii::$app->request->referrer);
+                    } else {
+                        return $this->goBack();
+                    }
+                }
+            }
+        }
 
+        return $this->render('signup', [
+                    'model' => $model,
+        ]);
+    }
     /**
      * Login action.
      *

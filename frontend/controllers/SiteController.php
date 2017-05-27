@@ -12,6 +12,7 @@ use frontend\models\PasswordResetRequestForm;
 use frontend\models\ResetPasswordForm;
 use frontend\models\SignupForm;
 use frontend\models\ContactForm;
+use yii\data\ActiveDataProvider;
 
 /**
  * Site controller
@@ -70,9 +71,75 @@ class SiteController extends Controller
      *
      * @return mixed
      */
-    public function actionIndex()
-    {
-        return $this->render('index');
+    public function actionIndex()     {
+        $ingr_c = Yii::$app->request->post('ingr');
+        if (count($ingr_c)<2) $mess='Выберите больше ингредиентов';
+        $dish_ingr = \common\models\dish_ingr::findAll(['ingr_id' => $ingr_c]);//Находим все блюда, в которых упоминаются
+                                                                                //введенные ингридиенты
+        foreach ($dish_ingr as $dish_ingr_c)         {
+            $dish_id[] = $dish_ingr_c->dish_id;//Сохраняем id этих блюд
+        }
+        $dish_id=array_unique($dish_id);
+        //die(var_dump($dish_id));
+        foreach($dish_id as $dish_id_c)
+        {
+            $dish_ingr_c = \common\models\dish_ingr::findAll(['dish_id' => $dish_id_c]);//все ингридиенты этого блюда
+            if(count($ingr_c) == count($dish_ingr_c)) /*если количество введенных ингридиентов 
+             * равно количеству игридиентов в блюде - сохраням в массив
+             */
+            {
+               // die('qsd');
+                $dish_id_f[] = $dish_id_c;
+            }
+            
+        }
+        
+        if (!$dish_id_f) {
+            foreach ($dish_id as $dish_id_c) {
+                $mess='Ничего не найдено';
+                $dish_ingr_c = \common\models\dish_ingr::findAll(['dish_id' => $dish_id_c]); //все ингридиенты этого блюда
+                if (count($ingr_c) > count($dish_ingr_c)) /* если количество введенных ингридиентов 
+                 * больше количества игридиентов в блюде - сохраням в массив
+                 */ {
+                    // die('qsd');
+                    $dish_id_f[$dish_id_c] = $dish_ingr_c;
+                }
+                $count = count(\common\models\dish_ingr::findAll(['dish_id' => $dish_id_c, 'ingr_id' => $ingr_c]));
+               if ($count > 2) {
+                    unset($mess);
+                }
+            }
+            
+            uasort($dish_id_f, function($first, $second) {
+                if (count($first) == count($second)) {
+                    return 0;
+                }
+                return (count($first) < count($second) ? -1 : 1);
+
+            });
+        }
+        
+        $dish_id_f= array_keys($dish_id_f);
+        $dish_id_f = array_unique($dish_id_f);
+        $dish = \common\models\dish::findAll($dish_id_f);
+
+
+
+
+        $dataProvider = new ActiveDataProvider([
+            'query' => \common\models\dish::find()->where(['id' => $dish_id_f]),
+            'pagination' => [
+                'pageSize' => 20,
+            ],
+        ]);
+        $ingr = \common\models\Ingr::find()->all();
+        return $this->render('index', [
+                    'ingr' => $ingr,
+                    'ingr_c' => $ingr_c,
+                    'dish' => $dish,
+                    'dataProvider' => $dataProvider,
+                    'mess' => $mess
+        ]);
     }
 
     /**
